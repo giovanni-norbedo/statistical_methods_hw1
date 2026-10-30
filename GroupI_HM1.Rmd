@@ -109,15 +109,54 @@ In the independent case the histogram follows the Poisson curve and $\text{var}/
 
 ### Ex 2.21 (Alessio Flego)
 
-*Here the text.*
+Plot the gamma distribution by fixing the shape parameter $k = 3$ and setting the scale parameter $= 0.5, 1, 2, 3, 4, 5$. What is the effect of increasing the scale parameter? (See also Exercise 2.48.)
 
 **Solution**
 
-Add comments to the solution.
+The gamma pdf (2.10) is $$f(y; k, \lambda) = \frac{\lambda^k}{\Gamma(k)} e^{-\lambda y} y^{k-1}, \qquad y \ge 0$$ where $k$ is the shape parameter and $\theta = 1/\lambda$ is the scale parameter. Written in terms of $\theta$, $$f(y; k, \theta) = \frac{1}{\Gamma(k)\,\theta^k}\, y^{k-1} e^{-y/\theta}, \qquad y \ge 0$$ and, from (2.11), $$\mu = k\theta, \qquad \sigma = \sqrt{k}\,\theta, \qquad \text{mode} = (k-1)\theta \quad (k > 1)$$
 
-```{r, echo=T}
-# code here
+In R, `dgamma(y, shape, scale)` uses exactly this parametrization.
+
+```{r, echo=T, fig.width=9, fig.height=4}
+k <- 3
+theta <- c(0.5, 1, 2, 3, 4, 5)
+cols <- c("red", "blue", "green", "orange", "purple", "brown")
+
+par(mfrow = c(1, 2))
+
+# pdfs on the original scale
+curve(dgamma(x, shape = k, scale = theta[1]), 0, 40,
+  n = 1000, col = cols[1], lwd = 2, ylim = c(0, 0.6),
+  xlab = "y", ylab = "f(y)", main = "Gamma pdf, k = 3"
+)
+for (i in 2:6) curve(dgamma(x, shape = k, scale = theta[i]), add = TRUE, n = 1000, col = cols[i], lwd = 2)
+legend("topright", legend = paste("scale =", theta), col = cols, lwd = 2)
+
+# pdfs of Z = Y / theta: f_Z(z) = theta * f_Y(theta * z)
+z <- seq(0, 12, length.out = 500)
+plot(z, theta[1] * dgamma(theta[1] * z, shape = k, scale = theta[1]),
+  type = "l", col = cols[1], lwd = 6,
+  xlab = "z = y / scale", ylab = "density", main = "Rescaled by the scale parameter"
+)
+for (i in 2:6) lines(z, theta[i] * dgamma(theta[i] * z, shape = k, scale = theta[i]), col = cols[i], lwd = 6 - 0.9 * i, lty = i)
+legend("topright", legend = paste("scale =", theta), col = cols, lwd = 2, lty = 1:6)
+
+data.frame(
+  scale = theta,
+  mean = k * theta,
+  sd = round(sqrt(k) * theta, 3),
+  mode = (k - 1) * theta,
+  max_density = round(dgamma((k - 1) * theta, shape = k, scale = theta), 3)
+)
 ```
+
+Increasing the scale parameter (with the shape fixed) **stretches the distribution to the right**:
+
+- the mean $k\theta$, the standard deviation $\sqrt{k}\,\theta$ and the mode $(k-1)\theta$ all grow proportionally to $\theta$, so the distribution moves to the right and becomes more spread out;
+- since the total area must remain 1, the peak becomes lower (the maximum density is proportional to $1/\theta$) and the curve flatter;
+- the **shape does not change**: the skewness $2/\sqrt{k} = 2/\sqrt{3} \approx 1.15$ is the same for every $\theta$.
+
+The right panel shows why $\theta$ is called a scale parameter (Exercise 2.48): if $Z$ has the gamma distribution with $k = 3$ and $\theta = 1$, then $Y = \theta Z$ has $f_Y(y) = \frac{1}{\theta} f_Z(y/\theta)$. Rescaling each curve by its own $\theta$, all six pdfs coincide, i.e. changing $\theta$ only changes the units of measurement of $Y$.
 
 ### Ex 2.26 (Giovanni Norbedo)
 
@@ -452,15 +491,103 @@ For a fixed mean, a larger $\alpha+\beta$ gives a smaller variance. Small totals
 
 ### Ex 3.18 (Alessio Flego)
 
-*Here the text.*
+Sunshine City, which attracts primarily retired people, has 90,000 residents with a mean age of 72 years and a standard deviation of 12 years. The age distribution is skewed to the left. A random sample of 100 residents of Sunshine City has $\bar{y} = 70$ and $s = 11$.
+
+(a) Describe the center and spread of the (i) population distribution, (ii) sample data distribution. What shape does the sample data distribution probably have? Why?\
+(b) Find the center and spread of the sampling distribution of $\bar{Y}$ for $n = 100$. What shape does it have and what does it describe?\
+(c) Explain why it would not be unusual to sample a person of age 60 in Sunshine City, but it would be highly unusual for the sample mean to be 60, for a random sample of 100 residents.\
+(d) Describe the sampling distribution of $\bar{Y}$: (i) for a random sample of size $n = 1$; (ii) if you sample all 90,000 residents.
 
 **Solution**
 
-Add comments to the solution.
+#### (a)
+
+(i) The **population distribution** is the distribution of the ages of all $N = 90{,}000$ residents. Its center and spread are the parameters $\mu = 72$ and $\sigma = 12$ years.
+
+(ii) The **sample data distribution** is the distribution of the ages of the $n = 100$ sampled residents. Its center and spread are the statistics $\bar{y} = 70$ and $s = 11$ years.
+
+The sample data distribution is probably **skewed to the left** too: a random sample is representative of the population, so for a reasonably large $n$ the sample data distribution resembles the population distribution (and $\bar{y}$, $s$ are close to $\mu$, $\sigma$).
+
+#### (b)
+
+The sampling distribution of $\bar{Y}$ has $$E(\bar{Y}) = \mu = 72, \qquad \sigma_{\bar{Y}} = \frac{\sigma}{\sqrt{n}} = \frac{12}{\sqrt{100}} = 1.2$$
+
+Since the population is finite, the exact standard error includes the finite population correction $\sqrt{(N-n)/(N-1)}$, but with $n/N \approx 0.001$ it is negligible:
 
 ```{r, echo=T}
-# code here
+N <- 90000
+mu <- 72
+sigma <- 12
+n <- 100
+
+se <- sigma / sqrt(n)
+fpc <- sqrt((N - n) / (N - 1))
+c(se = se, se_fpc = se * fpc)
 ```
+
+By the Central Limit Theorem, with $n = 100$ the sampling distribution is **approximately normal**, $\bar{Y} \sim N(72, 1.2^2)$, even though the population is skewed to the left. It describes how the sample mean $\bar{Y}$ would vary over all the possible random samples of 100 residents: about 95% of them would give $\bar{y}$ between $72 \pm 2(1.2)$, i.e. in $(69.6, 74.4)$.
+
+#### (c)
+
+For a single person the relevant spread is $\sigma = 12$, while for the sample mean it is $\sigma_{\bar{Y}} = 1.2$:
+$$z_{\text{person}} = \frac{60 - 72}{12} = -1, \qquad z_{\bar{Y}} = \frac{60 - 72}{1.2} = -10$$
+
+```{r, echo=T}
+z_person <- (60 - mu) / sigma
+z_mean <- (60 - mu) / se
+c(z_person = z_person, z_mean = z_mean)
+pnorm(z_mean)
+```
+
+An age of 60 is only one standard deviation below the population mean, so many residents are that age or younger. A sample mean of 60 instead lies 10 standard errors below $\mu$: its probability is practically 0. Individual ages vary a lot, but averaging 100 of them cancels most of this variability, so $\bar{Y}$ is very concentrated around $\mu = 72$.
+
+#### (d)
+
+(i) With $n = 1$, $\bar{Y} = Y_1$ is just the age of one randomly chosen resident, so the sampling distribution of $\bar{Y}$ **is the population distribution**: mean 72, standard deviation $12/\sqrt{1} = 12$, skewed to the left.
+
+(ii) If we sample all 90,000 residents, $\bar{Y}$ is always the population mean, so the sampling distribution is **degenerate at $\mu = 72$**, with standard error 0 (the finite population correction $\sqrt{(N-N)/(N-1)} = 0$).
+
+#### Simulation
+
+To illustrate, we build a left-skewed population of 90,000 ages with $\mu = 72$ and $\sigma = 12$ (100 times a beta variable, see Exercise 2.70), draw one sample of size 100 and then 10,000 samples to approximate the sampling distribution of $\bar{Y}$.
+
+```{r, echo=T, fig.width=9, fig.height=3.5}
+set.seed(2026)
+
+# left-skewed population on (0, 100): Y = 100 B, B ~ beta with mean 0.72 and variance 0.12^2,
+# i.e. alpha + beta = m(1 - m) / v - 1 = 13, alpha = 0.72 * 13, beta = 0.28 * 13
+m <- mu / 100
+v <- (sigma / 100)^2
+ab <- m * (1 - m) / v - 1
+pop <- 100 * rbeta(N, m * ab, (1 - m) * ab)
+pop <- mu + sigma * (pop - mean(pop)) / sd(pop) # exact mean 72 and sd 12
+
+samp <- sample(pop, n)
+ybar <- replicate(10000, mean(sample(pop, n)))
+
+par(mfrow = c(1, 3))
+hist(pop, breaks = 50, freq = FALSE, col = "lightblue", main = "(i) Population", xlab = "Age")
+hist(samp, breaks = 15, freq = FALSE, col = "lightgreen", main = "(ii) Sample, n = 100", xlab = "Age")
+hist(ybar,
+  breaks = 50, freq = FALSE, col = "orange",
+  main = "Sampling distribution of mean", xlab = "Sample mean age"
+)
+curve(dnorm(x, mu, se), add = TRUE, col = "red", lwd = 2)
+
+data.frame(
+  Distribution = c("Population", "Sample", "Sampling dist. of Ybar"),
+  Mean = round(c(mean(pop), mean(samp), mean(ybar)), 2),
+  SD = round(c(sd(pop), sd(samp), sd(ybar)), 2)
+)
+
+# (c): proportion of residents aged 60 or less vs proportion of sample means <= 60
+c(person = mean(pop <= 60), sample_mean = mean(ybar <= 60))
+
+# (d): n = 1 gives back the population, n = N always gives mu
+c(sd_n1 = sd(replicate(10000, mean(sample(pop, 1)))), mean_all = mean(sample(pop, N)))
+```
+
+The sample histogram is left-skewed like the population, while the histogram of the 10,000 sample means is symmetric, bell-shaped and matches the $N(72, 1.2^2)$ curve. About `r round(100 * mean(pop <= 60))`% of the residents are 60 or younger, but none of the 10,000 sample means is that low.
 
 ### Ex 3.28 (Giovanni Norbedo)
 
@@ -694,15 +821,65 @@ We are 95% confident that the proportion who have used marijuana is between 0.44
 
 ### Ex 4.48 (Alessio Flego)
 
-*Here the text.*
+For a simple random sample of $n$ subjects, explain why it is about 95% likely that the sample proportion has error no more than $1/\sqrt{n}$ in estimating the population proportion. (Hint: To show this "$1/\sqrt{n}$ rule," find two standard errors when $\pi = 0.50$, and explain how this compares to two standard errors at other values of $\pi$.) Using this result, show that $n = 1/M^2$ is a safe sample size for estimating a proportion to within $M$ with 95% confidence.
 
 **Solution**
 
-Add comments to the solution.
+#### The $1/\sqrt{n}$ rule
+
+The sample proportion $\hat{\pi}$ has $E(\hat{\pi}) = \pi$ and standard error $$\sigma_{\hat{\pi}} = \sqrt{\frac{\pi(1-\pi)}{n}}$$ and for large $n$ its sampling distribution is approximately normal. Hence $$P\left(|\hat{\pi} - \pi| \le 1.96\,\sigma_{\hat{\pi}}\right) \approx 0.95$$ so with probability about 0.95 the error is no more than about two standard errors.
+
+When $\pi = 0.50$, two standard errors are $$2\sqrt{\frac{0.50(0.50)}{n}} = 2 \cdot \frac{0.50}{\sqrt{n}} = \frac{1}{\sqrt{n}}$$
+
+For any other $\pi$, two standard errors are smaller: $\pi(1-\pi)$ is a parabola with maximum at $\pi = 0.50$, since $\frac{d}{d\pi}\pi(1-\pi) = 1 - 2\pi = 0$ at $\pi = 0.50$, so $\pi(1-\pi) \le 0.25$ and $$2\sigma_{\hat{\pi}} = \frac{2\sqrt{\pi(1-\pi)}}{\sqrt{n}} \le \frac{1}{\sqrt{n}} \qquad \text{for every } \pi$$
+
+Therefore, whatever the value of $\pi$, $$P\left(|\hat{\pi} - \pi| \le \frac{1}{\sqrt{n}}\right) \ge P\left(|\hat{\pi} - \pi| \le 2\sigma_{\hat{\pi}}\right) \approx 0.95$$ with "about 95%" at $\pi = 0.50$ and even more for $\pi$ far from 0.50.
+
+```{r, echo=T, fig.width=6, fig.height=4}
+pi_grid <- seq(0, 1, by = 0.01)
+plot(pi_grid, 2 * sqrt(pi_grid * (1 - pi_grid)),
+  type = "l", lwd = 2, col = "blue",
+  xlab = expression(pi), ylab = expression(2 * sigma[hat(pi)] * sqrt(n)),
+  main = "Two standard errors, in units of 1/sqrt(n)"
+)
+abline(h = 1, col = "red", lty = 2)
+```
+
+The curve $2\sqrt{\pi(1-\pi)}$ touches the bound 1 only at $\pi = 0.50$. We check the rule by simulation, with $n = 400$ (so $1/\sqrt{n} = 0.05$):
 
 ```{r, echo=T}
-# code here
+set.seed(1)
+n <- 400
+B <- 10000
+pis <- c(0.05, 0.1, 0.3, 0.5, 0.7, 0.9)
+
+# proportion of samples with |pi_hat - pi| <= 1/sqrt(n)
+P_rule <- sapply(pis, function(p) mean(abs(rbinom(B, n, p) / n - p) <= 1 / sqrt(n)))
+
+data.frame(
+  pi = pis,
+  two_se = round(2 * sqrt(pis * (1 - pis) / n), 4),
+  bound = 1 / sqrt(n),
+  P_error_le_bound = P_rule
+)
 ```
+
+#### Sample size $n = 1/M^2$
+
+We want the error to be at most $M$ with 95% confidence. From the rule, the error is at most $1/\sqrt{n}$ with probability at least about 0.95, so it is enough to set $$\frac{1}{\sqrt{n}} = M \quad\Rightarrow\quad \boxed{n = \frac{1}{M^2}}$$
+
+This is a **safe** sample size because it is computed in the worst case $\pi = 0.50$, so we do not need to guess $\pi$: for any other $\pi$ the margin of error is smaller than $M$. Compared with the formula $n = z_{0.025}^2\,\pi(1-\pi)/M^2$ with $\pi = 0.50$, it uses $2$ instead of $1.96$, so it is slightly conservative:
+
+```{r, echo=T}
+M <- c(0.05, 0.03, 0.01)
+data.frame(
+  M = M,
+  n_rule = 1 / M^2,
+  n_exact = ceiling(qnorm(0.975)^2 * 0.25 / M^2)
+)
+```
+
+For example, to estimate a proportion to within $M = 0.03$ it is safe to sample about $n = 1/0.03^2 \approx 1112$ subjects.
 
 ## FSDS - Chapter 5
 
@@ -934,15 +1111,51 @@ $$
 
 ### Ex 1.6 (Alessio Flego)
 
-*Here the text.*
+Let $X$ and $Y$ be non-independent random variables, such that $\text{var}(X) = \sigma_x^2$, $\text{var}(Y) = \sigma_y^2$ and $\text{cov}(X, Y) = \sigma_{xy}^2$. Using the result from Section 1.6.2, find $\text{var}(X + Y)$ and $\text{var}(X - Y)$.
 
 **Solution**
 
-Add comments to the solution.
+Let $\mathbf{X} = (X, Y)^\mathsf{T}$, with mean vector $\boldsymbol{\mu}$ and covariance matrix $$\boldsymbol{\Sigma} = \begin{bmatrix} \sigma_x^2 & \sigma_{xy}^2 \\ \sigma_{xy}^2 & \sigma_y^2 \end{bmatrix}$$
+
+Section 1.6.2 states that, if $\mathbf{a}$ is a vector of finite real constants, then $\mathbf{a}^\mathsf{T}\mathbf{X} \sim N(\mathbf{a}^\mathsf{T}\boldsymbol{\mu}, \mathbf{a}^\mathsf{T}\boldsymbol{\Sigma}\mathbf{a})$. The variance part of this result does not require normality, since it only uses the linearity of expectation: $$\text{var}(\mathbf{a}^\mathsf{T}\mathbf{X}) = E\left[\{\mathbf{a}^\mathsf{T}(\mathbf{X} - \boldsymbol{\mu})\}^2\right] = E\left[\mathbf{a}^\mathsf{T}(\mathbf{X} - \boldsymbol{\mu})(\mathbf{X} - \boldsymbol{\mu})^\mathsf{T}\mathbf{a}\right] = \mathbf{a}^\mathsf{T}\boldsymbol{\Sigma}\mathbf{a}$$
+
+**Sum.** $X + Y = \mathbf{a}^\mathsf{T}\mathbf{X}$ with $\mathbf{a} = (1, 1)^\mathsf{T}$: $$
+\text{var}(X + Y) = \begin{bmatrix} 1 & 1 \end{bmatrix}
+\begin{bmatrix} \sigma_x^2 & \sigma_{xy}^2 \\ \sigma_{xy}^2 & \sigma_y^2 \end{bmatrix}
+\begin{bmatrix} 1 \\ 1 \end{bmatrix}
+= \begin{bmatrix} \sigma_x^2 + \sigma_{xy}^2 & \sigma_{xy}^2 + \sigma_y^2 \end{bmatrix}
+\begin{bmatrix} 1 \\ 1 \end{bmatrix}
+= \boxed{\sigma_x^2 + \sigma_y^2 + 2\sigma_{xy}^2}
+$$
+
+**Difference.** $X - Y = \mathbf{a}^\mathsf{T}\mathbf{X}$ with $\mathbf{a} = (1, -1)^\mathsf{T}$: $$
+\text{var}(X - Y) = \begin{bmatrix} 1 & -1 \end{bmatrix}
+\begin{bmatrix} \sigma_x^2 & \sigma_{xy}^2 \\ \sigma_{xy}^2 & \sigma_y^2 \end{bmatrix}
+\begin{bmatrix} 1 \\ -1 \end{bmatrix}
+= \begin{bmatrix} \sigma_x^2 - \sigma_{xy}^2 & \sigma_{xy}^2 - \sigma_y^2 \end{bmatrix}
+\begin{bmatrix} 1 \\ -1 \end{bmatrix}
+= \boxed{\sigma_x^2 + \sigma_y^2 - 2\sigma_{xy}^2}
+$$
+
+Both results can be obtained at once with the matrix $\mathbf{A} = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$, since $\mathbf{A}\mathbf{X} = (X + Y, X - Y)^\mathsf{T}$ has covariance matrix $$\mathbf{A}\boldsymbol{\Sigma}\mathbf{A}^\mathsf{T} = \begin{bmatrix} \sigma_x^2 + \sigma_y^2 + 2\sigma_{xy}^2 & \sigma_x^2 - \sigma_y^2 \\ \sigma_x^2 - \sigma_y^2 & \sigma_x^2 + \sigma_y^2 - 2\sigma_{xy}^2 \end{bmatrix}$$ whose diagonal gives the two variances (and the off-diagonal term shows that $\text{cov}(X + Y, X - Y) = \sigma_x^2 - \sigma_y^2$).
+
+Since $X$ and $Y$ are not independent, $\sigma_{xy}^2 \ne 0$ in general: a positive covariance increases the variance of the sum and decreases that of the difference, and vice versa. Only when $\sigma_{xy}^2 = 0$ (e.g. under independence) do both reduce to $\sigma_x^2 + \sigma_y^2$.
+
+We check the result numerically, generating $(X, Y)^\mathsf{T}$ as in the definition of Section 1.6, $\mathbf{X} = \mathbf{B}\mathbf{Z}$ with $\mathbf{Z}$ i.i.d. $N(0, 1)$ and $\mathbf{B}\mathbf{B}^\mathsf{T} = \boldsymbol{\Sigma}$ (from the Cholesky factor), with $\sigma_x^2 = 4$, $\sigma_y^2 = 9$, $\sigma_{xy}^2 = 1.5$:
 
 ```{r, echo=T}
-# code here
+set.seed(3)
+Sigma <- matrix(c(4, 1.5, 1.5, 9), 2, 2)
+B <- t(chol(Sigma)) # chol() returns R with t(R) %*% R = Sigma, so B %*% t(B) = Sigma
+Z <- matrix(rnorm(2 * 1e6), 2) # each column is a vector of 2 i.i.d. N(0, 1)
+XY <- B %*% Z # each column is a draw of (X, Y)^T
+
+A <- matrix(c(1, 1, 1, -1), 2, 2, byrow = TRUE)
+A %*% Sigma %*% t(A) # theoretical covariance matrix of (X + Y, X - Y)
+round(cov(t(A %*% XY)), 3) # simulated covariance matrix of (X + Y, X - Y)
 ```
+
+The simulated variances agree with $\text{var}(X + Y) = 4 + 9 + 2(1.5) = 16$ and $\text{var}(X - Y) = 4 + 9 - 2(1.5) = 10$.
 
 ## CS - Chapter 3
 
